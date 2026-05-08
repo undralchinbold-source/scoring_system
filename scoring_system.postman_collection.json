@@ -1,0 +1,962 @@
+{
+  "info": {
+    "name": "Scoring System API",
+    "description": "Зээлийн оноо үнэлгээний системийн бүх API endpoint-уудын collection.\n\nАшиглах дараалал:\n1. Users → Create User  (user_id автоматаар хадгалагдана)\n2. Clients → Create Client\n3. Loan Applications → Create Loan Application\n4. Score History → Create Score History\n5. Notifications → Create Notification\n6. Audit Logs → Create Audit Log\n\nПортоо шалгах: base_url = http://127.0.0.1:5000",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://127.0.0.1:5000",
+      "description": "Flask серверийн хаяг. Дефолт порт 5000."
+    },
+    { "key": "user_id",   "value": "", "description": "Create User-аас автоматаар авна" },
+    { "key": "client_id", "value": "", "description": "Create Client-аас автоматаар авна" },
+    { "key": "loan_id",   "value": "", "description": "Create Loan Application-аас автоматаар авна" },
+    { "key": "score_id",  "value": "", "description": "Create Score History-аас автоматаар авна" },
+    { "key": "notif_id",  "value": "", "description": "Create Notification-аас автоматаар авна" },
+    { "key": "log_id",    "value": "", "description": "Create Audit Log-аас автоматаар авна" }
+  ],
+  "item": [
+
+    {
+      "name": "👤 Users",
+      "description": "Системийн хэрэглэгчид (admin, manager, analyst гэх мэт).\nНэвтрэх эрхтэй хүмүүсийн мэдээлэл энд хадгалагдана.",
+      "item": [
+
+        {
+          "name": "List Users — Бүх хэрэглэгч харах",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/users/",
+            "description": "Юу хийдэг: Системд бүртгэлтэй бүх хэрэглэгчийн жагсаалтыг буцаана.\nЯмар мэдээлэл явуулах: Огт хэрэггүй.\nЯмар хариу ирэх: 200 OK + хэрэглэгчдийн массив.\n\nЖишээ хариу:\n[\n  {\n    \"id\": \"uuid...\",\n    \"email\": \"bold@example.com\",\n    \"fullname\": \"Болд Баатар\",\n    \"role\": \"admin\",\n    \"last_login\": null\n  }\n]"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Амжилттай хариу ирсэн', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Хариу нь массив байх ёстой', function() {",
+                  "  pm.expect(pm.response.json()).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Create User — Хэрэглэгч үүсгэх",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/users/",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"bold@example.com\",\n  \"password\": \"Secret123!\",\n  \"role\": \"admin\",\n  \"fullname\": \"Болд Баатар\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Юу хийдэг: Шинэ хэрэглэгч үүсгэнэ. Нууц үг автоматаар hash болно.\n\nЗаавал явуулах талбарууд:\n- email     : и-мэйл хаяг (давхардаж болохгүй)\n- password  : нууц үг (хамгийн багадаа 6 тэмдэгт)\n- role      : 'admin' | 'manager' | 'analyst'\n- fullname  : овог нэр\n\nЯмар хариу ирэх:\n- 201 Created  → хэрэглэгч амжилттай үүслээ\n- 400 Bad Request → заавал талбар дутуу байна\n- 409 Conflict  → и-мэйл аль хэдийн бүртгэлтэй байна\n\nАнхаарал: Хариуд password_hash ирэхгүй, зөвхөн id, email, fullname, role ирнэ."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Хэрэглэгч амжилттай үүслээ (201)', function() {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('ID хариуд байгаа эсэх', function() {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('id');",
+                  "  pm.collectionVariables.set('user_id', json.id);",
+                  "  console.log('user_id хадгалагдлаа:', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Get User — Нэг хэрэглэгч харах",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/users/{{user_id}}",
+            "description": "Юу хийдэг: ID-аар тодорхой нэг хэрэглэгчийн мэдээлэл авна.\n\nURL-д байгаа {{user_id}} нь Create User хийсний дараа автоматаар орно.\n\nЯмар хариу ирэх:\n- 200 OK    → хэрэглэгчийн бүх мэдээлэл\n- 404 Not Found → тийм ID-тай хэрэглэгч байхгүй"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Хэрэглэгч олдлоо (200)', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Зөв хэрэглэгч ирсэн эсэх', function() {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.id).to.equal(pm.collectionVariables.get('user_id'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Update User — Хэрэглэгч засах",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/api/users/{{user_id}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullname\": \"Болд Баатар (шинэчлэгдсэн)\",\n  \"role\": \"manager\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Юу хийдэг: Байгаа хэрэглэгчийн мэдээллийг өөрчилнэ.\n\nЗасаж болох талбарууд (бүгдийг явуулах шаардлагагүй):\n- fullname : шинэ нэр\n- email    : шинэ и-мэйл\n- password : шинэ нууц үг\n- role     : шинэ эрх\n\nЯмар хариу ирэх:\n- 200 OK     → засвар амжилттай, шинэ мэдээлэл буцаана\n- 404 Not Found → хэрэглэгч байхгүй"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Засвар амжилттай (200)', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Нэр шинэчлэгдсэн эсэх', function() {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.fullname).to.include('шинэчлэгдсэн');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Delete User — Хэрэглэгч устгах",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/users/{{user_id}}",
+            "description": "Юу хийдэг: Хэрэглэгчийг бүрмөсөн устгана.\n\nАнхаарал: Устгасны дараа {{user_id}}-г ашигласан бусад request-үүд (Client, Loan гэх мэт) алдаа өгч болно.\nТиймээс энэ request-ийг хамгийн сүүлд ажиллуулна.\n\nЯмар хариу ирэх:\n- 200 OK     → { 'message': 'User deleted' }\n- 404 Not Found → хэрэглэгч олдсонгүй"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Устгалт амжилттай (200)', function() {",
+                  "  pm.response.to.have.status(200);",
+                  "});",
+                  "pm.test('Амжилтын мессеж ирсэн эсэх', function() {",
+                  "  pm.expect(pm.response.json().message).to.equal('User deleted');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "[Алдаа] Create User — Давхардсан и-мэйл (409)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/users/",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"bold@example.com\",\n  \"password\": \"Secret123!\",\n  \"role\": \"admin\",\n  \"fullname\": \"Давхардсан хэрэглэгч\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Юу хийдэг: Аль хэдийн бүртгэлтэй и-мэйлээр дахин бүртгүүлэхийг оролдно.\n\nЯмар хариу ирэх:\n- 409 Conflict → { 'error': 'Email already exists' }\n\nЭнэ request нь системийн давхардсан мэдээллийг хамгаалах механизмыг шалгах зориулалттай."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Давхардсан и-мэйл татгалзагдана (409)', function() {",
+                  "  pm.response.to.have.status(409);",
+                  "});",
+                  "pm.test('Алдааны мессеж ирсэн эсэх', function() {",
+                  "  pm.expect(pm.response.json()).to.have.property('error');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "[Алдаа] Create User — Талбар дутуу (400)",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/users/",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"incomplete@example.com\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Юу хийдэг: Заавал талбаруудгүйгээр хэрэглэгч үүсгэхийг оролдно.\n\nЯмар хариу ирэх:\n- 400 Bad Request → { 'error': 'Missing fields: password, role, fullname' }"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Дутуу мэдээлэл татгалзагдана (400)', function() {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Дутуу талбаруудын нэр ирсэн эсэх', function() {",
+                  "  pm.expect(pm.response.json().error).to.include('Missing fields');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "🧑 Clients",
+      "description": "Зээл хүсч буй харилцагчдын мэдээлэл.\nРегистрийн дугаар, орлого, утасны дугаар энд хадгалагдана.",
+      "item": [
+
+        {
+          "name": "List Clients — Бүх харилцагч харах",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/clients/",
+            "description": "Юу хийдэг: Системд бүртгэлтэй бүх харилцагчийн жагсаалтыг буцаана.\n\nЯмар хариу ирэх: 200 OK + харилцагчдын массив (хоосон байж болно)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Амжилттай (200)', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Массив буцаасан', function() { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Create Client — Харилцагч үүсгэх",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/clients/",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"national_id\": \"МН87654321\",\n  \"fullname\": \"Дорж Гантулга\",\n  \"income\": 4500000,\n  \"phone\": \"99112233\",\n  \"created_by\": \"{{user_id}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Юу хийдэг: Шинэ харилцагч бүртгэнэ.\n\nЗаавал явуулах талбарууд:\n- national_id : регистрийн дугаар (давхардаж болохгүй)\n- fullname    : харилцагчийн бүтэн нэр\n\nЗаавал биш талбарууд:\n- income     : сарын орлого (төгрөгөөр)\n- phone      : утасны дугаар\n- created_by : үүсгэсэн ажилтны user_id (UUID)\n\nЯмар хариу ирэх:\n- 201 Created   → харилцагч амжилттай үүслээ\n- 400 Bad Request  → national_id эсвэл fullname дутуу\n- 409 Conflict   → national_id аль хэдийн бүртгэлтэй"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Харилцагч амжилттай үүслээ (201)', function() {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('client_id хадгалах', function() {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('id');",
+                  "  pm.collectionVariables.set('client_id', json.id);",
+                  "  console.log('client_id хадгалагдлаа:', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Get Client — Нэг харилцагч харах",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/clients/{{client_id}}",
+            "description": "Юу хийдэг: ID-аар тодорхой харилцагчийн дэлгэрэнгүй мэдээлэл авна.\n\nЯмар хариу ирэх:\n- 200 OK     → харилцагчийн мэдээлэл\n- 404 Not Found → тийм ID-тай харилцагч байхгүй"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Харилцагч олдлоо (200)', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Зөв харилцагч ирсэн', function() {",
+                  "  pm.expect(pm.response.json().id).to.equal(pm.collectionVariables.get('client_id'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Update Client — Харилцагч засах",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/api/clients/{{client_id}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"fullname\": \"Дорж Гантулга (шинэчлэгдсэн)\",\n  \"income\": 6000000,\n  \"phone\": \"88334455\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Юу хийдэг: Харилцагчийн мэдээллийг өөрчилнэ.\n\nЗасаж болох талбарууд:\n- fullname : нэр\n- income   : орлого\n- phone    : утас\n\nAnхаарал: national_id засаж болохгүй.\n\nЯмар хариу ирэх:\n- 200 OK     → шинэчлэгдсэн мэдээлэл буцаана\n- 404 Not Found → харилцагч олдсонгүй"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Засвар амжилттай (200)', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Орлого шинэчлэгдсэн', function() {",
+                  "  pm.expect(pm.response.json().income).to.equal(6000000);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Delete Client — Харилцагч устгах",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/clients/{{client_id}}",
+            "description": "Юу хийдэг: Харилцагчийг устгана.\n\nАнхаарал: Харилцагчид зээлийн өргөдөл байвал устгахыг зөвшөөрөхгүй.\nЭхлээд зээлийн өргөдлийг устга, дараа нь харилцагчийг устга.\n\nЯмар хариу ирэх:\n- 200 OK    → { 'message': 'Client deleted' }\n- 404 Not Found → харилцагч байхгүй\n- 409 Conflict  → харилцагчид идэвхтэй зээл бий, устгаж болохгүй"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Устгалт амжилттай эсвэл 409', function() {",
+                  "  pm.expect([200, 409]).to.include(pm.response.code);",
+                  "});",
+                  "if (pm.response.code === 409) {",
+                  "  console.log('Харилцагчид зээл бий — эхлээд зээлийг устгана уу');",
+                  "}"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "[Алдаа] Delete Client — Зээлтэй байхад устгах (409)",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/clients/{{client_id}}",
+            "description": "Юу хийдэг: Зээлийн өргөдөлтэй харилцагчийг устгахыг оролдно.\n\nЯмар хариу ирэх:\n- 409 Conflict → { 'error': 'Cannot delete client with existing loan applications' }\n\nЭнэ request ажиллахын тулд эхлээд Loan Application үүсгэсэн байх хэрэгтэй."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Зээлтэй харилцагч устгагдахгүй (409)', function() {",
+                  "  pm.response.to.have.status(409);",
+                  "});",
+                  "pm.test('Алдааны мессеж зөв', function() {",
+                  "  pm.expect(pm.response.json().error).to.include('loan applications');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "📋 Loan Applications",
+      "description": "Зээлийн өргөдлүүд.\nХарилцагч зээл хүсэхэд энд бүртгэгдэнэ. Статус: pending → approved/rejected/cancelled.",
+      "item": [
+
+        {
+          "name": "List Loan Applications — Бүх өргөдөл харах",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/loan-applications/",
+            "description": "Юу хийдэг: Бүх зээлийн өргөдлийн жагсаалтыг буцаана.\n\nЯмар хариу ирэх: 200 OK + өргөдлийн массив."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Амжилттай (200)', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Массив буцаасан', function() { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Create Loan Application — Өргөдөл үүсгэх",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/loan-applications/",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"client_id\": \"{{client_id}}\",\n  \"user_id\": \"{{user_id}}\",\n  \"requested_amount\": 15000000,\n  \"status\": \"pending\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Юу хийдэг: Харилцагчийн зээлийн шинэ өргөдөл үүсгэнэ.\n\nЗаавал явуулах талбарууд:\n- client_id        : харилцагчийн UUID (Create Client-аас авна)\n- requested_amount : хүссэн зээлийн дүн (төгрөгөөр)\n\nЗаавал биш талбарууд:\n- user_id : өргөдлийг хүлээн авсан ажилтны ID\n- status  : анхны төлөв (дефолт: 'pending')\n\nБоломжит статусууд: pending | approved | rejected | cancelled\n\nЯмар хариу ирэх:\n- 201 Created   → өргөдөл амжилттай үүслээ, статус 'pending' байна\n- 400 Bad Request  → client_id эсвэл requested_amount дутуу"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Өргөдөл амжилттай үүслээ (201)', function() {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('loan_id хадгалах', function() {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('id');",
+                  "  pm.expect(json.status).to.equal('pending');",
+                  "  pm.collectionVariables.set('loan_id', json.id);",
+                  "  console.log('loan_id хадгалагдлаа:', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Get Loan Application — Нэг өргөдөл харах",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/loan-applications/{{loan_id}}",
+            "description": "Юу хийдэг: Тодорхой зээлийн өргөдлийн дэлгэрэнгүй мэдээлэл авна.\n\nЯмар хариу ирэх:\n- 200 OK     → өргөдлийн бүх талбар (id, client_id, status, requested_amount гэх мэт)\n- 404 Not Found → өргөдөл байхгүй"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Өргөдөл олдлоо (200)', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Зөв өргөдөл ирсэн', function() {",
+                  "  pm.expect(pm.response.json().id).to.equal(pm.collectionVariables.get('loan_id'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Update Loan Application — Өргөдөл шинэчлэх",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/api/loan-applications/{{loan_id}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"approved\",\n  \"requested_amount\": 12000000,\n  \"user_id\": \"{{user_id}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Юу хийдэг: Зээлийн өргөдлийн статус болон дүнг өөрчилнэ.\n\nЗасаж болох талбарууд:\n- status           : pending | approved | rejected | cancelled\n- requested_amount : зээлийн дүн\n- user_id          : хариуцсан ажилтан\n\nАнхаарал: Буруу статус явуулбал 400 алдаа ирнэ.\n\nЯмар хариу ирэх:\n- 200 OK    → шинэчлэгдсэн өргөдөл буцаана\n- 400 Bad Request → статус буруу\n- 404 Not Found   → өргөдөл олдсонгүй"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Шинэчлэлт амжилттай (200)', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Статус approved болсон', function() {",
+                  "  pm.expect(pm.response.json().status).to.equal('approved');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Delete Loan Application — Өргөдөл устгах",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/loan-applications/{{loan_id}}",
+            "description": "Юу хийдэг: Зээлийн өргөдлийг устгана.\n\nАнхаарал: Энэ өргөдөлтэй холбоотой Score History байвал эхлээд тэдгээрийг устгах шаардлагатай байж болно.\n\nЯмар хариу ирэх:\n- 200 OK     → { 'message': 'Loan application deleted' }\n- 404 Not Found → өргөдөл байхгүй"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Устгалт амжилттай (200)', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Амжилтын мессеж', function() {",
+                  "  pm.expect(pm.response.json().message).to.include('deleted');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "[Алдаа] Update — Буруу статус (400)",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/api/loan-applications/{{loan_id}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"буруу_статус\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Юу хийдэг: Зөвшөөрөгдөөгүй статус утга явуулна.\n\nЯмар хариу ирэх:\n- 400 Bad Request → { 'error': 'Invalid status. Choose from: ...' }\n\nЗөв статусууд: pending, approved, rejected, cancelled"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Буруу статус татгалзагдана (400)', function() {",
+                  "  pm.response.to.have.status(400);",
+                  "});",
+                  "pm.test('Алдааны мессеж статус агуулна', function() {",
+                  "  pm.expect(pm.response.json().error).to.include('status');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "📊 Score History",
+      "description": "Зээлийн оноо үнэлгээний түүх.\nАль загвар, хэдэн оноо өгсөн, ямар шийдвэр гаргасан бүртгэгдэнэ.",
+      "item": [
+
+        {
+          "name": "List Score History — Бүх оноо харах",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/score-history/",
+            "description": "Юу хийдэг: Бүх оноо үнэлгээний бүртгэлийн жагсаалтыг буцаана.\n\nЯмар хариу ирэх: 200 OK + массив."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Амжилттай (200)', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Массив буцаасан', function() { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Create Score History — Оноо бүртгэх",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/score-history/",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"application_id\": \"{{loan_id}}\",\n  \"model_version\": \"v1.0.0\",\n  \"score\": 725.5,\n  \"decision\": \"approved\",\n  \"created_by\": \"{{user_id}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Юу хийдэг: Зээлийн өргөдөлд оноо дүгнэлт бүртгэнэ.\n\nЗаавал явуулах талбарууд:\n- application_id : зээлийн өргөдлийн UUID\n- model_version  : ашигласан загварын хувилбар (жишээ: 'v1.0.0')\n- score          : оноо (тоо, жишээ: 725.5)\n- decision       : шийдвэр ('approved' | 'rejected')\n\nЗаавал биш:\n- created_by : дүгнэлт хийсэн ажилтны user_id\n\nЯмар хариу ирэх:\n- 201 Created   → оноо амжилттай бүртгэгдлээ\n- 400 Bad Request  → заавал талбар дутуу"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Оноо амжилттай бүртгэгдлээ (201)', function() {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('score_id хадгалах', function() {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('id');",
+                  "  pm.collectionVariables.set('score_id', json.id);",
+                  "  console.log('score_id хадгалагдлаа:', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Get Score History — Нэг бүртгэл харах",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/score-history/{{score_id}}",
+            "description": "Юу хийдэг: Тодорхой оноо бүртгэлийн дэлгэрэнгүй мэдээлэл авна.\n\nЯмар хариу ирэх:\n- 200 OK     → оноо, шийдвэр, загварын хувилбар гэх мэт\n- 404 Not Found → бүртгэл байхгүй"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Бүртгэл олдлоо (200)', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Оноо тоо байх ёстой', function() {",
+                  "  pm.expect(pm.response.json().score).to.be.a('number');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Update Score History — Оноо засах",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/api/score-history/{{score_id}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"score\": 810.0,\n  \"decision\": \"approved\",\n  \"model_version\": \"v1.1.0\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Юу хийдэг: Оноо бүртгэлийн утгуудыг өөрчилнэ.\n\nЗасаж болох талбарууд:\n- score         : шинэ оноо\n- decision      : шинэ шийдвэр\n- model_version : шинэ загварын хувилбар\n\nЯмар хариу ирэх:\n- 200 OK     → шинэчлэгдсэн мэдээлэл\n- 404 Not Found → бүртгэл байхгүй"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Засвар амжилттай (200)', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Оноо шинэчлэгдсэн', function() {",
+                  "  pm.expect(pm.response.json().score).to.equal(810);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Delete Score History — Оноо устгах",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/score-history/{{score_id}}",
+            "description": "Юу хийдэг: Оноо бүртгэлийг устгана.\n\nЯмар хариу ирэх:\n- 200 OK     → { 'message': 'Score history deleted' }\n- 404 Not Found → бүртгэл байхгүй"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Устгалт амжилттай (200)', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Амжилтын мессеж', function() {",
+                  "  pm.expect(pm.response.json().message).to.include('deleted');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "🔔 Notifications",
+      "description": "Мэдэгдлүүд.\nИ-мэйл, SMS, push зэргээр харилцагч болон ажилтанд мэдэгдэл явуулах бүртгэл.",
+      "item": [
+
+        {
+          "name": "List Notifications — Бүх мэдэгдэл харах",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/notifications/",
+            "description": "Юу хийдэг: Бүх мэдэгдлийн жагсаалтыг буцаана.\n\nЯмар хариу ирэх: 200 OK + мэдэгдлийн массив."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Амжилттай (200)', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Массив буцаасан', function() { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Create Notification — Мэдэгдэл үүсгэх",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/notifications/",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"application_id\": \"{{loan_id}}\",\n  \"channel\": \"email\",\n  \"recipient\": \"dorj@example.com\",\n  \"subject\": \"Зээлийн өргөдлийн шийдвэр\",\n  \"message_body\": \"Таны зээлийн өргөдөл батлагдлаа. Дүн: 15,000,000 ₮\",\n  \"status\": \"pending\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Юу хийдэг: Харилцагчид илгээх мэдэгдэл бүртгэнэ.\n\nЗаавал явуулах талбарууд:\n- channel      : илгээх суваг ('email' | 'sms' | 'push')\n- recipient    : хүлээн авагчийн хаяг (и-мэйл эсвэл утас)\n- message_body : мэдэгдлийн үндсэн текст\n\nЗаавал биш:\n- application_id : холбоотой өргөдлийн ID\n- subject        : гарчиг (и-мэйлд хэрэглэнэ)\n- status         : 'pending' | 'sent' | 'failed' (дефолт: 'pending')\n\nЯмар хариу ирэх:\n- 201 Created   → мэдэгдэл бүртгэгдлээ, status 'pending'\n- 400 Bad Request  → channel, recipient, message_body дутуу"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Мэдэгдэл амжилттай үүслээ (201)', function() {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('notif_id хадгалах', function() {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json.status).to.equal('pending');",
+                  "  pm.collectionVariables.set('notif_id', json.id);",
+                  "  console.log('notif_id хадгалагдлаа:', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Get Notification — Нэг мэдэгдэл харах",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/notifications/{{notif_id}}",
+            "description": "Юу хийдэг: Тодорхой мэдэгдлийн дэлгэрэнгүй мэдээлэл авна.\n\nЯмар хариу ирэх:\n- 200 OK     → мэдэгдлийн бүх мэдээлэл\n- 404 Not Found → мэдэгдэл байхгүй"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Мэдэгдэл олдлоо (200)', function() { pm.response.to.have.status(200); });"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Update Notification — Мэдэгдэл шинэчлэх",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/api/notifications/{{notif_id}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"status\": \"sent\",\n  \"sent_at\": \"2026-05-08T10:00:00+00:00\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Юу хийдэг: Мэдэгдлийн статус болон бусад мэдээллийг өөрчилнэ.\n\nЗасаж болох талбарууд:\n- status       : 'pending' | 'sent' | 'failed'\n- sent_at      : илгээсэн цаг (ISO 8601 формат)\n- channel      : суваг\n- recipient    : хүлээн авагч\n- subject      : гарчиг\n- message_body : агуулга\n\nЯмар хариу ирэх:\n- 200 OK     → шинэчлэгдсэн мэдэгдэл\n- 404 Not Found → мэдэгдэл байхгүй"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Засвар амжилттай (200)', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Статус sent болсон', function() {",
+                  "  pm.expect(pm.response.json().status).to.equal('sent');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Delete Notification — Мэдэгдэл устгах",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/notifications/{{notif_id}}",
+            "description": "Юу хийдэг: Мэдэгдлийг устгана.\n\nЯмар хариу ирэх:\n- 200 OK     → { 'message': 'Notification deleted' }\n- 404 Not Found → мэдэгдэл байхгүй"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Устгалт амжилттай (200)', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Амжилтын мессеж', function() {",
+                  "  pm.expect(pm.response.json().message).to.include('deleted');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+
+    {
+      "name": "📝 Audit Logs",
+      "description": "Аудит бүртгэл.\nСистемд хэн, юу хийснийг бүртгэдэг. Хяналт, нэвтрэлтийн мөрдөлт.",
+      "item": [
+
+        {
+          "name": "List Audit Logs — Бүх бүртгэл харах",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/audit-logs/",
+            "description": "Юу хийдэг: Системийн бүх үйлдлийн бүртгэлийг буцаана.\n\nЯмар хариу ирэх: 200 OK + аудит бүртгэлийн массив."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Амжилттай (200)', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Массив буцаасан', function() { pm.expect(pm.response.json()).to.be.an('array'); });"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Create Audit Log — Үйлдэл бүртгэх",
+          "request": {
+            "method": "POST",
+            "url": "{{base_url}}/api/audit-logs/",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"user_id\": \"{{user_id}}\",\n  \"action\": \"APPROVE\",\n  \"entity_type\": \"loan_application\",\n  \"entity_id\": \"{{loan_id}}\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Юу хийдэг: Хэрэглэгчийн үйлдлийг аудит бүртгэлд хадгална.\n\nЗаавал явуулах талбарууд:\n- action      : хийсэн үйлдэл (жишээ: 'CREATE', 'UPDATE', 'DELETE', 'APPROVE', 'REJECT')\n- entity_type : ямар обьект дээр үйлдэл хийсэн (жишээ: 'loan_application', 'client')\n\nЗаавал биш:\n- user_id   : үйлдэл хийсэн хэрэглэгчийн ID\n- entity_id : үйлдэл хийгдсэн обьектын ID\n\nЯмар хариу ирэх:\n- 201 Created   → бүртгэл амжилттай хадгалагдлаа\n- 400 Bad Request  → action эсвэл entity_type дутуу"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Аудит бүртгэл амжилттай үүслээ (201)', function() {",
+                  "  pm.response.to.have.status(201);",
+                  "});",
+                  "pm.test('log_id хадгалах', function() {",
+                  "  var json = pm.response.json();",
+                  "  pm.expect(json).to.have.property('id');",
+                  "  pm.collectionVariables.set('log_id', json.id);",
+                  "  console.log('log_id хадгалагдлаа:', json.id);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Get Audit Log — Нэг бүртгэл харах",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/audit-logs/{{log_id}}",
+            "description": "Юу хийдэг: Тодорхой аудит бүртгэлийн дэлгэрэнгүй мэдээлэл авна.\n\nЯмар хариу ирэх:\n- 200 OK     → бүртгэлийн бүх мэдээлэл\n- 404 Not Found → бүртгэл байхгүй"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Бүртгэл олдлоо (200)', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Зөв бүртгэл ирсэн', function() {",
+                  "  pm.expect(pm.response.json().id).to.equal(pm.collectionVariables.get('log_id'));",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Update Audit Log — Бүртгэл засах",
+          "request": {
+            "method": "PUT",
+            "url": "{{base_url}}/api/audit-logs/{{log_id}}",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"action\": \"REVIEW\",\n  \"entity_type\": \"loan_application\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "description": "Юу хийдэг: Аудит бүртгэлийн мэдээллийг өөрчилнэ.\n\nЗасаж болох талбарууд:\n- action      : шинэ үйлдлийн нэр\n- entity_type : шинэ обьектын төрөл\n- entity_id   : шинэ обьектын ID\n\nЯмар хариу ирэх:\n- 200 OK     → шинэчлэгдсэн бүртгэл\n- 404 Not Found → бүртгэл байхгүй"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Засвар амжилттай (200)', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Үйлдэл шинэчлэгдсэн', function() {",
+                  "  pm.expect(pm.response.json().action).to.equal('REVIEW');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "Delete Audit Log — Бүртгэл устгах",
+          "request": {
+            "method": "DELETE",
+            "url": "{{base_url}}/api/audit-logs/{{log_id}}",
+            "description": "Юу хийдэг: Аудит бүртгэлийг устгана.\n\nЯмар хариу ирэх:\n- 200 OK     → { 'message': 'Audit log deleted' }\n- 404 Not Found → бүртгэл байхгүй"
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Устгалт амжилттай (200)', function() { pm.response.to.have.status(200); });",
+                  "pm.test('Амжилтын мессеж', function() {",
+                  "  pm.expect(pm.response.json().message).to.include('deleted');",
+                  "});"
+                ]
+              }
+            }
+          ]
+        },
+
+        {
+          "name": "[Алдаа] Get — Байхгүй ID (404)",
+          "request": {
+            "method": "GET",
+            "url": "{{base_url}}/api/audit-logs/00000000-0000-0000-0000-000000000000",
+            "description": "Юу хийдэг: Байхгүй UUID-аар хайлт хийнэ.\n\nЯмар хариу ирэх:\n- 404 Not Found → тийм бүртгэл байхгүй\n\nЭнэ алдааны хариу нь HTML формат байна (Flask-ийн дефолт 404)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Байхгүй ID 404 өгнө', function() {",
+                  "  pm.response.to.have.status(404);",
+                  "});"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    }
+
+  ]
+}
