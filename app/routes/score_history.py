@@ -2,17 +2,20 @@ import uuid
 from flask import Blueprint, request, jsonify
 from app.extensions import db
 from app.models.score_history import ScoreHistory
+from app.auth import both_roles, super_only
 
 bp = Blueprint("score_history", __name__, url_prefix="/api/score-history")
 
 
 @bp.get("/")
+@both_roles
 def list_score_history():
     records = db.session.execute(db.select(ScoreHistory)).scalars().all()
     return jsonify([r.to_dict() for r in records]), 200
 
 
 @bp.post("/")
+@super_only
 def create_score_history():
     data = request.get_json() or {}
     required = ("application_id", "model_version", "score", "decision")
@@ -25,7 +28,7 @@ def create_score_history():
         model_version=data["model_version"],
         score=data["score"],
         decision=data["decision"],
-        created_by=uuid.UUID(data["created_by"]) if data.get("created_by") else None,
+        created_by=request.current_user.id,
     )
     db.session.add(record)
     db.session.commit()
@@ -33,12 +36,14 @@ def create_score_history():
 
 
 @bp.get("/<uuid:id>")
+@both_roles
 def get_score_history(id):
     record = db.get_or_404(ScoreHistory, id)
     return jsonify(record.to_dict()), 200
 
 
 @bp.put("/<uuid:id>")
+@super_only
 def update_score_history(id):
     record = db.get_or_404(ScoreHistory, id)
     data = request.get_json() or {}
@@ -55,6 +60,7 @@ def update_score_history(id):
 
 
 @bp.delete("/<uuid:id>")
+@super_only
 def delete_score_history(id):
     record = db.get_or_404(ScoreHistory, id)
     db.session.delete(record)

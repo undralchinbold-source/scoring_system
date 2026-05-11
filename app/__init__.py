@@ -25,6 +25,7 @@ def create_app(config_name: str = None) -> Flask:
     )
 
     from app.routes import (
+        auth_bp,
         users_bp,
         clients_bp,
         loan_applications_bp,
@@ -33,6 +34,7 @@ def create_app(config_name: str = None) -> Flask:
         notifications_bp,
     )
 
+    app.register_blueprint(auth_bp)
     app.register_blueprint(users_bp)
     app.register_blueprint(clients_bp)
     app.register_blueprint(loan_applications_bp)
