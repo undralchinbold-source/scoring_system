@@ -1,11 +1,39 @@
 from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
-from werkzeug.security import check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 from app.extensions import db
 from app.models.user import User
 from app.auth import create_token
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
+
+
+@bp.post("/register")
+def register():
+    data = request.get_json() or {}
+    required = ("email", "password", "fullname", "role")
+    missing = [f for f in required if not data.get(f)]
+    if missing:
+        return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
+
+    if data["role"] not in ("super_user", "admin"):
+        return jsonify({"error": "Role must be 'super_user' or 'admin'"}), 400
+
+    if db.session.execute(
+        db.select(User).filter_by(email=data["email"])
+    ).scalar_one_or_none():
+        return jsonify({"error": "Email already exists"}), 409
+
+    user = User(
+        email=data["email"],
+        password_hash=generate_password_hash(data["password"]),
+        fullname=data["fullname"],
+        role=data["role"],
+    )
+    db.session.add(user)
+    db.session.commit()
+
+    return jsonify({"token": create_token(user), "user": user.to_dict()}), 201
 
 
 @bp.post("/login")
