@@ -3,6 +3,7 @@ PPT Алхам 4: /api/predict endpoint
 Route → Validator → Service → Predictor → DB → Response
 """
 import uuid
+from http import HTTPStatus
 
 from flask import Blueprint, jsonify, request
 
@@ -15,57 +16,47 @@ from app.validators.predict_validator import validate_predict_input
 bp = Blueprint("predict", __name__, url_prefix="/api")
 
 
+def _parse_uuid(raw_id: str) -> uuid.UUID:
+    """UUID parse — формат буруу бол ValueError өргөнө."""
+    try:
+        return uuid.UUID(str(raw_id))
+    except ValueError:
+        raise ValueError("application_id формат буруу — UUID байх ёстой")
+
+
+def _enrich_data_from_loan(data: dict, loan: LoanApplication) -> None:
+    """DB-с авсан утгуудыг data dict-д default болгоно."""
+    data.setdefault("requested_amount", float(loan.requested_amount))
+    if loan.client and loan.client.income is not None:
+        data.setdefault("monthly_income", float(loan.client.income))
+
+
+def _resolve_loan(data: dict):
+    """application_id байвал DB-с loan авч, data-г баяжуулна."""
+    application_id = data.get("application_id")
+    if not application_id:
+        return None
+    app_uuid = _parse_uuid(application_id)
+    loan = db.get_or_404(LoanApplication, app_uuid)
+    _enrich_data_from_loan(data, loan)
+    return loan
+
+
 @bp.post("/predict")
 @both_roles
 def predict():
-    """
-    POST /api/predict
-
-    Body (JSON):
-      Шаардлагатай талбарууд:
-        monthly_income   – сарын орлого (₮)
-        employment_years – ажилласан жил
-        requested_amount – зээлийн дүн (₮)
-        employment_type  – ажлын байрны төрөл (Монголоор)
-
-      Нэмэлт (заавал биш):
-        application_id   – зээлийн өргөдлийн UUID.
-                           Байвал DB-с requested_amount болон monthly_income
-                           автоматаар авч ScoreHistory-д хадгална.
-                           Гараар оруулсан утга DB утгыг дарж бичнэ.
-
-    Response:
-      score        – зөвшөөрлийн магадлал [0-1]
-      decision     – approved / manual_review / rejected
-      probabilities – бүх классын магадлал
-      model_version – загварын хувилбар
-      score_history – DB-д хадгалагдсан бичлэг (application_id байвал)
-    """
+    """POST /api/predict — зээлийн зэрэглэл тооцоолно."""
     data = request.get_json() or {}
 
-    application_id = data.get("application_id")
-    loan = None
+    try:
+        loan = _resolve_loan(data)
+    except ValueError as exc:
+        return jsonify({"error": str(exc)}), HTTPStatus.BAD_REQUEST
 
-    # application_id ирвэл DB-с мэдээлэл авна
-    if application_id:
-        try:
-            app_uuid = uuid.UUID(str(application_id))
-        except ValueError:
-            return jsonify({"error": "application_id формат буруу — UUID байх ёстой"}), 400
-
-        loan = db.get_or_404(LoanApplication, app_uuid)
-
-        # DB-с авсан утгуудыг default болгоно (caller override хийж болно)
-        data.setdefault("requested_amount", float(loan.requested_amount))
-        if loan.client and loan.client.income is not None:
-            data.setdefault("monthly_income", float(loan.client.income))
-
-    # Validation
     errors = validate_predict_input(data)
     if errors:
-        return jsonify({"errors": errors}), 400
+        return jsonify({"errors": errors}), HTTPStatus.BAD_REQUEST
 
-    # Service давхарга руу шилжүүлнэ
     try:
         result = run_prediction(
             input_data=data,
@@ -73,10 +64,10 @@ def predict():
             user_id=request.current_user.id if loan else None,
         )
     except FileNotFoundError as exc:
-        return jsonify({"error": str(exc)}), 500
+        return jsonify({"error": str(exc)}), HTTPStatus.INTERNAL_SERVER_ERROR
     except ValueError as exc:
-        return jsonify({"error": f"Оролтын алдаа: {exc}"}), 400
+        return jsonify({"error": f"Оролтын алдаа: {exc}"}), HTTPStatus.BAD_REQUEST
     except Exception as exc:
-        return jsonify({"error": f"Таамаглал гаргахад алдаа гарлаа: {exc}"}), 500
+        return jsonify({"error": f"Таамаглал гаргахад алдаа гарлаа: {exc}"}), HTTPStatus.INTERNAL_SERVER_ERROR
 
-    return jsonify(result), 200
+    return jsonify(result), HTTPStatus.OK
