@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify
 from app.extensions import db
 from app.models.notification import Notification
 from app.auth import both_roles, super_only
+from app.utils.response import missing_fields_error
 
 bp = Blueprint("notifications", __name__, url_prefix="/api/notifications")
 
@@ -21,7 +22,7 @@ def create_notification():
     required = ("channel", "recipient", "message_body")
     missing = [f for f in required if not data.get(f)]
     if missing:
-        return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
+        return missing_fields_error(missing)
 
     notification = Notification(
         application_id=uuid.UUID(data["application_id"]) if data.get("application_id") else None,

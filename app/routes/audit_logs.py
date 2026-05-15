@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify
 from app.extensions import db
 from app.models.audit_log import AuditLog
 from app.auth import both_roles, super_only
+from app.utils.response import missing_fields_error
 
 bp = Blueprint("audit_logs", __name__, url_prefix="/api/audit-logs")
 
@@ -21,7 +22,7 @@ def create_audit_log():
     required = ("action", "entity_type")
     missing = [f for f in required if not data.get(f)]
     if missing:
-        return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
+        return missing_fields_error(missing)
 
     log = AuditLog(
         user_id=request.current_user.id,

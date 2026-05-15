@@ -3,6 +3,7 @@ from sqlalchemy.exc import IntegrityError
 from app.extensions import db
 from app.models.client import Client
 from app.auth import both_roles, super_only
+from app.utils.response import missing_fields_error
 
 bp = Blueprint("clients", __name__, url_prefix="/api/clients")
 
@@ -21,7 +22,7 @@ def create_client():
     required = ("national_id", "fullname")
     missing = [f for f in required if not data.get(f)]
     if missing:
-        return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
+        return missing_fields_error(missing)
 
     if db.session.execute(
         db.select(Client).filter_by(national_id=data["national_id"])

@@ -4,6 +4,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from app.extensions import db
 from app.models.user import User
 from app.auth import create_token
+from app.utils.response import missing_fields_error
 
 bp = Blueprint("auth", __name__, url_prefix="/api/auth")
 
@@ -14,7 +15,7 @@ def register():
     required = ("email", "password", "fullname", "role")
     missing = [f for f in required if not data.get(f)]
     if missing:
-        return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
+        return missing_fields_error(missing)
 
     if data["role"] not in ("super_user", "admin"):
         return jsonify({"error": "Role must be 'super_user' or 'admin'"}), 400

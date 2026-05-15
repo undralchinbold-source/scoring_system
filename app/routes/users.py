@@ -3,6 +3,7 @@ from werkzeug.security import generate_password_hash
 from app.extensions import db
 from app.models.user import User
 from app.auth import both_roles, super_only
+from app.utils.response import missing_fields_error
 
 bp = Blueprint("users", __name__, url_prefix="/api/users")
 
@@ -21,7 +22,7 @@ def create_user():
     required = ("email", "password", "role", "fullname")
     missing = [f for f in required if not data.get(f)]
     if missing:
-        return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
+        return missing_fields_error(missing)
 
     if db.session.execute(
         db.select(User).filter_by(email=data["email"])

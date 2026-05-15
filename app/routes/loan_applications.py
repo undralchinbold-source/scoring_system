@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from app.extensions import db
 from app.models.loan_application import LoanApplication
 from app.auth import both_roles, super_only
+from app.utils.response import missing_fields_error
 
 bp = Blueprint("loan_applications", __name__, url_prefix="/api/loan-applications")
 
@@ -22,7 +23,7 @@ def create_loan_application():
     required = ("client_id", "requested_amount")
     missing = [f for f in required if not data.get(f)]
     if missing:
-        return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
+        return missing_fields_error(missing)
 
     import uuid
     loan = LoanApplication(

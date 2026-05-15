@@ -3,6 +3,7 @@ from flask import Blueprint, request, jsonify
 from app.extensions import db
 from app.models.score_history import ScoreHistory
 from app.auth import both_roles, super_only
+from app.utils.response import missing_fields_error
 
 bp = Blueprint("score_history", __name__, url_prefix="/api/score-history")
 
@@ -21,7 +22,7 @@ def create_score_history():
     required = ("application_id", "model_version", "score", "decision")
     missing = [f for f in required if data.get(f) is None]
     if missing:
-        return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
+        return missing_fields_error(missing)
 
     record = ScoreHistory(
         application_id=uuid.UUID(data["application_id"]),
