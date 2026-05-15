@@ -21,8 +21,8 @@ __pycache__/
 .vscode/
 .idea/
 
-# Claude Code local settings
-.claude/
+# Claude Code local settings (нууц тохиргоо л ignore)
+.claude/settings.local.json
 
 # Test cache
 .pytest_cache/
