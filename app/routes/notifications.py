@@ -2,20 +2,20 @@ import uuid
 from flask import Blueprint, request, jsonify
 from app.extensions import db
 from app.models.notification import Notification
-from app.auth import both_roles, super_only
+from app.utils.decorators import any_role_required, super_user_required
 
 bp = Blueprint("notifications", __name__, url_prefix="/api/notifications")
 
 
 @bp.get("/")
-@both_roles
+@any_role_required
 def list_notifications():
     items = db.session.execute(db.select(Notification)).scalars().all()
     return jsonify([n.to_dict() for n in items]), 200
 
 
 @bp.post("/")
-@super_only
+@super_user_required
 def create_notification():
     data = request.get_json() or {}
     required = ("channel", "recipient", "message_body")
@@ -37,14 +37,14 @@ def create_notification():
 
 
 @bp.get("/<uuid:id>")
-@both_roles
+@any_role_required
 def get_notification(id):
     notification = db.get_or_404(Notification, id)
     return jsonify(notification.to_dict()), 200
 
 
 @bp.put("/<uuid:id>")
-@super_only
+@super_user_required
 def update_notification(id):
     notification = db.get_or_404(Notification, id)
     data = request.get_json() or {}
@@ -67,7 +67,7 @@ def update_notification(id):
 
 
 @bp.delete("/<uuid:id>")
-@super_only
+@super_user_required
 def delete_notification(id):
     notification = db.get_or_404(Notification, id)
     db.session.delete(notification)

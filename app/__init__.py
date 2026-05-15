@@ -1,7 +1,7 @@
 import os
 from flask import Flask
 from config import config_by_name
-from app.extensions import db, migrate
+from app.extensions import db, migrate, jwt
 
 
 def create_app(config_name: str = None) -> Flask:
@@ -13,6 +13,7 @@ def create_app(config_name: str = None) -> Flask:
 
     db.init_app(app)
     migrate.init_app(app, db)
+    jwt.init_app(app)
 
     # Import models so Flask-Migrate can detect them
     from app.models import (  # noqa: F401

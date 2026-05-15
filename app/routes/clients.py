@@ -1,21 +1,22 @@
+import uuid
 from flask import Blueprint, request, jsonify
 from sqlalchemy.exc import IntegrityError
 from app.extensions import db
 from app.models.client import Client
-from app.auth import both_roles, super_only
+from app.utils.decorators import any_role_required, super_user_required
 
 bp = Blueprint("clients", __name__, url_prefix="/api/clients")
 
 
 @bp.get("/")
-@both_roles
+@any_role_required
 def list_clients():
     clients = db.session.execute(db.select(Client)).scalars().all()
     return jsonify([c.to_dict() for c in clients]), 200
 
 
 @bp.post("/")
-@super_only
+@super_user_required
 def create_client():
     data = request.get_json() or {}
     required = ("national_id", "fullname")
@@ -33,7 +34,7 @@ def create_client():
         fullname=data["fullname"],
         income=data.get("income"),
         phone=data.get("phone"),
-        created_by=request.current_user.id,
+        created_by=uuid.UUID(data["created_by"]) if data.get("created_by") else None,
     )
     db.session.add(client)
     db.session.commit()
@@ -41,14 +42,14 @@ def create_client():
 
 
 @bp.get("/<uuid:id>")
-@both_roles
+@any_role_required
 def get_client(id):
     client = db.get_or_404(Client, id)
     return jsonify(client.to_dict()), 200
 
 
 @bp.put("/<uuid:id>")
-@super_only
+@super_user_required
 def update_client(id):
     client = db.get_or_404(Client, id)
     data = request.get_json() or {}
@@ -65,7 +66,7 @@ def update_client(id):
 
 
 @bp.delete("/<uuid:id>")
-@super_only
+@super_user_required
 def delete_client(id):
     client = db.get_or_404(Client, id)
     db.session.delete(client)

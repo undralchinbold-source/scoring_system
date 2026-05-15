@@ -2,20 +2,20 @@ from flask import Blueprint, request, jsonify
 from werkzeug.security import generate_password_hash
 from app.extensions import db
 from app.models.user import User
-from app.auth import both_roles, super_only
+from app.utils.decorators import any_role_required, super_user_required, VALID_ROLES
 
 bp = Blueprint("users", __name__, url_prefix="/api/users")
 
 
 @bp.get("/")
-@both_roles
+@any_role_required
 def list_users():
     users = db.session.execute(db.select(User)).scalars().all()
     return jsonify([u.to_dict() for u in users]), 200
 
 
 @bp.post("/")
-@super_only
+@super_user_required
 def create_user():
     data = request.get_json() or {}
     required = ("email", "password", "role", "fullname")
@@ -28,8 +28,8 @@ def create_user():
     ).scalar_one_or_none():
         return jsonify({"error": "Email already exists"}), 409
 
-    if data["role"] not in ("super_user", "admin"):
-        return jsonify({"error": "Role must be 'super_user' or 'admin'"}), 400
+    if data["role"] not in VALID_ROLES:
+        return jsonify({"error": "role must be 'admin' or 'super_user'"}), 400
 
     user = User(
         email=data["email"],
@@ -43,14 +43,14 @@ def create_user():
 
 
 @bp.get("/<uuid:id>")
-@both_roles
+@any_role_required
 def get_user(id):
     user = db.get_or_404(User, id)
     return jsonify(user.to_dict()), 200
 
 
 @bp.put("/<uuid:id>")
-@super_only
+@super_user_required
 def update_user(id):
     user = db.get_or_404(User, id)
     data = request.get_json() or {}
@@ -60,8 +60,8 @@ def update_user(id):
     if "password" in data:
         user.password_hash = generate_password_hash(data["password"])
     if "role" in data:
-        if data["role"] not in ("super_user", "admin"):
-            return jsonify({"error": "Role must be 'super_user' or 'admin'"}), 400
+        if data["role"] not in ("admin", "super_user"):
+            return jsonify({"error": "role must be 'admin' or 'super_user'"}), 400
         user.role = data["role"]
     if "fullname" in data:
         user.fullname = data["fullname"]
@@ -71,7 +71,7 @@ def update_user(id):
 
 
 @bp.delete("/<uuid:id>")
-@super_only
+@super_user_required
 def delete_user(id):
     user = db.get_or_404(User, id)
     db.session.delete(user)

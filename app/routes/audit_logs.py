@@ -2,20 +2,20 @@ import uuid
 from flask import Blueprint, request, jsonify
 from app.extensions import db
 from app.models.audit_log import AuditLog
-from app.auth import both_roles, super_only
+from app.utils.decorators import any_role_required, super_user_required
 
 bp = Blueprint("audit_logs", __name__, url_prefix="/api/audit-logs")
 
 
 @bp.get("/")
-@both_roles
+@any_role_required
 def list_audit_logs():
     logs = db.session.execute(db.select(AuditLog)).scalars().all()
     return jsonify([l.to_dict() for l in logs]), 200
 
 
 @bp.post("/")
-@super_only
+@super_user_required
 def create_audit_log():
     data = request.get_json() or {}
     required = ("action", "entity_type")
@@ -24,7 +24,7 @@ def create_audit_log():
         return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
 
     log = AuditLog(
-        user_id=request.current_user.id,
+        user_id=uuid.UUID(data["user_id"]) if data.get("user_id") else None,
         action=data["action"],
         entity_type=data["entity_type"],
         entity_id=uuid.UUID(data["entity_id"]) if data.get("entity_id") else None,
@@ -35,14 +35,14 @@ def create_audit_log():
 
 
 @bp.get("/<uuid:id>")
-@both_roles
+@any_role_required
 def get_audit_log(id):
     log = db.get_or_404(AuditLog, id)
     return jsonify(log.to_dict()), 200
 
 
 @bp.put("/<uuid:id>")
-@super_only
+@super_user_required
 def update_audit_log(id):
     log = db.get_or_404(AuditLog, id)
     data = request.get_json() or {}
@@ -59,7 +59,7 @@ def update_audit_log(id):
 
 
 @bp.delete("/<uuid:id>")
-@super_only
+@super_user_required
 def delete_audit_log(id):
     log = db.get_or_404(AuditLog, id)
     db.session.delete(log)
