@@ -23,3 +23,9 @@ __pycache__/
 
 # Claude Code local settings
 .claude/
+
+# Test cache
+.pytest_cache/
+
+# PostgreSQL Docker secrets
+postgres-stack/.env
