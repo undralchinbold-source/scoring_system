@@ -1,45 +1,51 @@
-"""
-PPT Архитектур — Validation хэсэг
-Оролтын мэдээллийг шалгаж, алдааны тайлбар буцаана.
-"""
-from app.ml.predictor import EMPLOYMENT_TYPES
+import uuid
+from flask import jsonify, make_response
+from http import HTTPStatus
+from app.utils.decorators import validate_required
+
+REQUIRED_FIELDS = (
+    "application_id", "monthly_income", "employment_years",
+    "requested_amount", "employment_type",
+)
 
 
-def validate_predict_input(data: dict) -> list[str]:
-    """
-    Оролтыг шалгаж, алдааны жагсаалт буцаана.
-    Жагсаалт хоосон бол алдаагүй гэсэн үг.
-    """
-    errors = []
+def _err(body: dict, status: int):
+    return make_response(jsonify(body), status), None
 
-    required_fields = {
-        "monthly_income": "Сарын орлого",
-        "employment_years": "Ажилласан жил",
-        "requested_amount": "Зээлийн дүн",
-        "employment_type": "Ажлын байрны төрөл",
+
+def validate_inputs(data: dict, valid_employment_types: list):
+    missing = validate_required(data, REQUIRED_FIELDS)
+    if missing:
+        return _err({"error": f"Missing fields: {', '.join(missing)}"}, HTTPStatus.BAD_REQUEST)
+
+    try:
+        application_id   = uuid.UUID(str(data["application_id"]))
+        monthly_income   = float(data["monthly_income"])
+        employment_years = float(data["employment_years"])
+        requested_amount = float(data["requested_amount"])
+        employment_type  = str(data["employment_type"])
+    except (ValueError, TypeError) as e:
+        return _err({"error": f"Invalid field value: {e}"}, HTTPStatus.BAD_REQUEST)
+
+    if monthly_income <= 0 or requested_amount <= 0:
+        return _err(
+            {"error": "monthly_income and requested_amount must be positive"},
+            HTTPStatus.BAD_REQUEST,
+        )
+
+    if employment_type not in valid_employment_types:
+        return _err(
+            {
+                "error": f"Unknown employment_type '{employment_type}'",
+                "valid_values": list(valid_employment_types),
+            },
+            HTTPStatus.BAD_REQUEST,
+        )
+
+    return None, {
+        "application_id":   application_id,
+        "monthly_income":   monthly_income,
+        "employment_years": employment_years,
+        "requested_amount": requested_amount,
+        "employment_type":  employment_type,
     }
-
-    for field, label in required_fields.items():
-        if field not in data or data[field] is None or data[field] == "":
-            errors.append(f"{label} ({field}) шаардлагатай")
-
-    if errors:
-        return errors
-
-    # Тоон утгуудыг шалгана
-    for field in ("monthly_income", "employment_years", "requested_amount"):
-        try:
-            val = float(data[field])
-            if val <= 0:
-                errors.append(f"{field} 0-ээс их байх ёстой")
-        except (TypeError, ValueError):
-            errors.append(f"{field} тоон утга байх ёстой")
-
-    # Ажлын байрны төрлийг шалгана
-    if isinstance(data.get("employment_type"), str):
-        if data["employment_type"] not in EMPLOYMENT_TYPES:
-            errors.append(
-                f"employment_type буруу. Зөв утгууд: {', '.join(EMPLOYMENT_TYPES)}"
-            )
-
-    return errors

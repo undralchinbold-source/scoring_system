@@ -1,8 +1,12 @@
-import uuid
-from flask import Blueprint, request, jsonify
+from http import HTTPStatus
+
+from flask import Blueprint, jsonify, request
+
 from app.extensions import db
 from app.models.notification import Notification
 from app.utils.decorators import any_role_required, super_user_required
+from app.validators import notification_validator
+from app.services import notification_service
 
 bp = Blueprint("notifications", __name__, url_prefix="/api/notifications")
 
@@ -11,36 +15,25 @@ bp = Blueprint("notifications", __name__, url_prefix="/api/notifications")
 @any_role_required
 def list_notifications():
     items = db.session.execute(db.select(Notification)).scalars().all()
-    return jsonify([n.to_dict() for n in items]), 200
+    return jsonify([n.to_dict() for n in items]), HTTPStatus.OK
 
 
 @bp.post("/")
 @super_user_required
 def create_notification():
     data = request.get_json() or {}
-    required = ("channel", "recipient", "message_body")
-    missing = [f for f in required if not data.get(f)]
-    if missing:
-        return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
-
-    notification = Notification(
-        application_id=uuid.UUID(data["application_id"]) if data.get("application_id") else None,
-        channel=data["channel"],
-        recipient=data["recipient"],
-        subject=data.get("subject"),
-        message_body=data["message_body"],
-        status=data.get("status", "pending"),
-    )
-    db.session.add(notification)
-    db.session.commit()
-    return jsonify(notification.to_dict()), 201
+    err = notification_validator.validate_create(data)
+    if err:
+        return err
+    notification = notification_service.create(data)
+    return jsonify(notification.to_dict()), HTTPStatus.CREATED
 
 
 @bp.get("/<uuid:id>")
 @any_role_required
 def get_notification(id):
     notification = db.get_or_404(Notification, id)
-    return jsonify(notification.to_dict()), 200
+    return jsonify(notification.to_dict()), HTTPStatus.OK
 
 
 @bp.put("/<uuid:id>")
@@ -48,28 +41,13 @@ def get_notification(id):
 def update_notification(id):
     notification = db.get_or_404(Notification, id)
     data = request.get_json() or {}
-
-    if "channel" in data:
-        notification.channel = data["channel"]
-    if "recipient" in data:
-        notification.recipient = data["recipient"]
-    if "subject" in data:
-        notification.subject = data["subject"]
-    if "message_body" in data:
-        notification.message_body = data["message_body"]
-    if "status" in data:
-        notification.status = data["status"]
-    if "sent_at" in data:
-        notification.sent_at = data["sent_at"]
-
-    db.session.commit()
-    return jsonify(notification.to_dict()), 200
+    notification = notification_service.update(notification, data)
+    return jsonify(notification.to_dict()), HTTPStatus.OK
 
 
 @bp.delete("/<uuid:id>")
 @super_user_required
 def delete_notification(id):
     notification = db.get_or_404(Notification, id)
-    db.session.delete(notification)
-    db.session.commit()
-    return jsonify({"message": "Notification deleted"}), 200
+    notification_service.delete(notification)
+    return jsonify({"message": "Notification deleted"}), HTTPStatus.OK

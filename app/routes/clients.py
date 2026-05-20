@@ -1,9 +1,13 @@
-import uuid
-from flask import Blueprint, request, jsonify
+from http import HTTPStatus
+
+from flask import Blueprint, jsonify, request
 from sqlalchemy.exc import IntegrityError
+
 from app.extensions import db
 from app.models.client import Client
 from app.utils.decorators import any_role_required, super_user_required
+from app.validators import client_validator
+from app.services import client_service
 
 bp = Blueprint("clients", __name__, url_prefix="/api/clients")
 
@@ -12,40 +16,27 @@ bp = Blueprint("clients", __name__, url_prefix="/api/clients")
 @any_role_required
 def list_clients():
     clients = db.session.execute(db.select(Client)).scalars().all()
-    return jsonify([c.to_dict() for c in clients]), 200
+    return jsonify([c.to_dict() for c in clients]), HTTPStatus.OK
 
 
 @bp.post("/")
 @super_user_required
 def create_client():
     data = request.get_json() or {}
-    required = ("national_id", "fullname")
-    missing = [f for f in required if not data.get(f)]
-    if missing:
-        return jsonify({"error": f"Missing fields: {', '.join(missing)}"}), 400
-
-    if db.session.execute(
-        db.select(Client).filter_by(national_id=data["national_id"])
-    ).scalar_one_or_none():
-        return jsonify({"error": "national_id already exists"}), 409
-
-    client = Client(
-        national_id=data["national_id"],
-        fullname=data["fullname"],
-        income=data.get("income"),
-        phone=data.get("phone"),
-        created_by=uuid.UUID(data["created_by"]) if data.get("created_by") else None,
-    )
-    db.session.add(client)
-    db.session.commit()
-    return jsonify(client.to_dict()), 201
+    err = client_validator.validate_create(data)
+    if err:
+        return err
+    if client_service.find_by_national_id(data["national_id"]):
+        return jsonify({"error": "national_id already exists"}), HTTPStatus.CONFLICT
+    client = client_service.create(data)
+    return jsonify(client.to_dict()), HTTPStatus.CREATED
 
 
 @bp.get("/<uuid:id>")
 @any_role_required
 def get_client(id):
     client = db.get_or_404(Client, id)
-    return jsonify(client.to_dict()), 200
+    return jsonify(client.to_dict()), HTTPStatus.OK
 
 
 @bp.put("/<uuid:id>")
@@ -53,26 +44,16 @@ def get_client(id):
 def update_client(id):
     client = db.get_or_404(Client, id)
     data = request.get_json() or {}
-
-    if "fullname" in data:
-        client.fullname = data["fullname"]
-    if "income" in data:
-        client.income = data["income"]
-    if "phone" in data:
-        client.phone = data["phone"]
-
-    db.session.commit()
-    return jsonify(client.to_dict()), 200
+    client = client_service.update(client, data)
+    return jsonify(client.to_dict()), HTTPStatus.OK
 
 
 @bp.delete("/<uuid:id>")
 @super_user_required
 def delete_client(id):
     client = db.get_or_404(Client, id)
-    db.session.delete(client)
     try:
-        db.session.commit()
+        client_service.delete(client)
     except IntegrityError:
-        db.session.rollback()
-        return jsonify({"error": "Cannot delete client with existing loan applications"}), 409
-    return jsonify({"message": "Client deleted"}), 200
+        return jsonify({"error": "Cannot delete client with existing loan applications"}), HTTPStatus.CONFLICT
+    return jsonify({"message": "Client deleted"}), HTTPStatus.OK
