@@ -1,0 +1,70 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: scoring_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: scoring_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - appnetwork
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d scoring_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgadmin:
+    image: dpage/pgadmin4
+    container_name: scoring_pgadmin
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: baigalaazorigt@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: Admin@1234
+    ports:
+      - "8080:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - appnetwork
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  app:
+    build: .
+    container_name: scoring_app
+    restart: always
+    environment:
+      FLASK_ENV: development
+      SECRET_KEY: dev-secret-key
+      JWT_SECRET_KEY: dev-jwt-secret-key
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: scoring_db
+      DB_USER: admin
+      DB_PASSWORD: admin123
+    ports:
+      - "5001:5001"
+    volumes:
+      - .:/app
+    networks:
+      - appnetwork
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: >
+      sh -c "flask db upgrade && python run.py"
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+
+networks:
+  appnetwork:
+    driver: bridge

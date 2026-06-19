@@ -1,5 +1,6 @@
 import os
 from flask import Flask
+from flask_cors import CORS
 from config import config_by_name
 from app.extensions import db, migrate, jwt
 
@@ -14,6 +15,7 @@ def create_app(config_name: str = None) -> Flask:
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
+    CORS(app, origins=["http://localhost:3000", "http://127.0.0.1:3000"])
 
     # Import models so Flask-Migrate can detect them
     from app.models import (  # noqa: F401

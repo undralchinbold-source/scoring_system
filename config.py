@@ -30,8 +30,17 @@ class ProductionConfig(Config):
     DEBUG = False
 
 
+class SQLiteConfig(Config):
+    DEBUG = True
+    SQLALCHEMY_DATABASE_URI = "sqlite:///scoring_local.db"
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "execution_options": {"schema_translate_map": {"public": None}}
+    }
+
+
 config_by_name = {
     "development": DevelopmentConfig,
     "production": ProductionConfig,
+    "sqlite": SQLiteConfig,
     "default": DevelopmentConfig,
 }

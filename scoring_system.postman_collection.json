@@ -1,55 +1,21 @@
 {
   "info": {
     "name": "Scoring System API",
-    "_postman_id": "scoring-system-v1",
-    "description": "Loan Scoring System — бүх endpoint-үүд. Эхлээд /api/auth/login дуудаж token авна.",
+    "_postman_id": "scoring-system-v2",
+    "description": "Loan Scoring System — Flask REST API\n\nBase URL variable: `{{base_url}}` (default: http://127.0.0.1:5001)\n\nAfter calling **Login**, the `token` variable is set automatically via the test script. All subsequent requests use `Bearer {{token}}`.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "variable": [
-    {
-      "key": "base_url",
-      "value": "http://localhost:5001",
-      "type": "string"
-    },
-    {
-      "key": "token",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "user_id",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "client_id",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "application_id",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "score_history_id",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "notification_id",
-      "value": "",
-      "type": "string"
-    },
-    {
-      "key": "audit_log_id",
-      "value": "",
-      "type": "string"
-    }
+    { "key": "base_url", "value": "http://127.0.0.1:5001", "type": "string" },
+    { "key": "token",    "value": "",                       "type": "string" }
   ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{ "key": "token", "value": "{{token}}", "type": "string" }]
+  },
   "item": [
     {
-      "name": "🔐 Auth",
+      "name": "Auth",
       "item": [
         {
           "name": "Login",
@@ -60,9 +26,8 @@
                 "exec": [
                   "var json = pm.response.json();",
                   "if (json.access_token) {",
-                  "  pm.collectionVariables.set('token', json.access_token);",
-                  "  pm.collectionVariables.set('user_id', json.user.id);",
-                  "  console.log('✅ Token хадгалагдлаа');",
+                  "    pm.collectionVariables.set('token', json.access_token);",
+                  "    console.log('Token saved.');",
                   "}"
                 ],
                 "type": "text/javascript"
@@ -70,193 +35,118 @@
             }
           ],
           "request": {
+            "auth": { "type": "noauth" },
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
               "raw": "{\n  \"email\": \"admin@example.com\",\n  \"password\": \"password123\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/api/auth/login",
-              "host": ["{{base_url}}"],
-              "path": ["api", "auth", "login"]
-            },
-            "description": "Login хийж JWT token авна. Token автоматаар {{token}} variable-д хадгалагдана."
+            "url": { "raw": "{{base_url}}/api/auth/login", "host": ["{{base_url}}"], "path": ["api", "auth", "login"] }
           }
         }
       ]
     },
     {
-      "name": "👥 Users",
+      "name": "Users",
       "item": [
         {
           "name": "List Users",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/users/",
-              "host": ["{{base_url}}"],
-              "path": ["api", "users", ""]
-            },
-            "description": "Бүх хэрэглэгчдийн жагсаалт. any_role_required."
+            "url": { "raw": "{{base_url}}/api/users", "host": ["{{base_url}}"], "path": ["api", "users"] }
           }
         },
         {
           "name": "Create User",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var json = pm.response.json();",
-                  "if (json.id) {",
-                  "  pm.collectionVariables.set('user_id', json.id);",
-                  "  console.log('✅ user_id хадгалагдлаа:', json.id);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"admin\",\n  \"fullname\": \"Шинэ Хэрэглэгч\"\n}"
+              "raw": "{\n  \"email\": \"newuser@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"admin\",\n  \"fullname\": \"New User\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/api/users/",
-              "host": ["{{base_url}}"],
-              "path": ["api", "users", ""]
-            },
-            "description": "Шинэ хэрэглэгч үүсгэх. super_user_required. role: 'admin' эсвэл 'super_user'."
+            "url": { "raw": "{{base_url}}/api/users", "host": ["{{base_url}}"], "path": ["api", "users"] },
+            "description": "Required: email, password, role (admin | super_user), fullname\nAccess: super_user only"
           }
         },
         {
           "name": "Get User",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
             "url": {
               "raw": "{{base_url}}/api/users/{{user_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "users", "{{user_id}}"]
-            },
-            "description": "Тодорхой хэрэглэгчийн мэдээлэл авах."
+              "path": ["api", "users", "{{user_id}}"],
+              "variable": [{ "key": "user_id", "value": "00000000-0000-0000-0000-000000000000" }]
+            }
           }
         },
         {
           "name": "Update User",
           "request": {
             "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullname\": \"Шинэчлэгдсэн Нэр\",\n  \"role\": \"admin\"\n}"
+              "raw": "{\n  \"fullname\": \"Updated Name\",\n  \"role\": \"admin\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/users/{{user_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "users", "{{user_id}}"]
+              "path": ["api", "users", "{{user_id}}"],
+              "variable": [{ "key": "user_id", "value": "00000000-0000-0000-0000-000000000000" }]
             },
-            "description": "Хэрэглэгчийн мэдээлэл шинэчлэх. super_user_required."
+            "description": "Optional fields: fullname, role (admin | super_user)\nAccess: super_user only"
           }
         },
         {
           "name": "Delete User",
           "request": {
             "method": "DELETE",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
             "url": {
               "raw": "{{base_url}}/api/users/{{user_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "users", "{{user_id}}"]
+              "path": ["api", "users", "{{user_id}}"],
+              "variable": [{ "key": "user_id", "value": "00000000-0000-0000-0000-000000000000" }]
             },
-            "description": "Хэрэглэгч устгах. super_user_required."
+            "description": "Access: super_user only"
           }
         }
       ]
     },
     {
-      "name": "🧑 Clients",
+      "name": "Clients",
       "item": [
         {
           "name": "List Clients",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/clients/",
-              "host": ["{{base_url}}"],
-              "path": ["api", "clients", ""]
-            },
-            "description": "Бүх клиентийн жагсаалт."
+            "url": { "raw": "{{base_url}}/api/clients", "host": ["{{base_url}}"], "path": ["api", "clients"] }
           }
         },
         {
           "name": "Create Client",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var json = pm.response.json();",
-                  "if (json.id) {",
-                  "  pm.collectionVariables.set('client_id', json.id);",
-                  "  console.log('✅ client_id хадгалагдлаа:', json.id);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"national_id\": \"УБ123456\",\n  \"fullname\": \"Болд Баатар\",\n  \"phone\": \"99001122\",\n  \"income\": 3500000\n}"
+              "raw": "{\n  \"national_id\": \"ББ12345678\",\n  \"fullname\": \"Батбаяр Дорж\",\n  \"income\": 2500000,\n  \"phone\": \"+97699001122\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/api/clients/",
-              "host": ["{{base_url}}"],
-              "path": ["api", "clients", ""]
-            },
-            "description": "Шинэ клиент үүсгэх. super_user_required."
+            "url": { "raw": "{{base_url}}/api/clients", "host": ["{{base_url}}"], "path": ["api", "clients"] },
+            "description": "Required: national_id, fullname\nOptional: income, phone\nAccess: super_user only"
           }
         },
         {
           "name": "Get Client",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
             "url": {
               "raw": "{{base_url}}/api/clients/{{client_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "clients", "{{client_id}}"]
+              "path": ["api", "clients", "{{client_id}}"],
+              "variable": [{ "key": "client_id", "value": "00000000-0000-0000-0000-000000000000" }]
             }
           }
         },
@@ -264,100 +154,67 @@
           "name": "Update Client",
           "request": {
             "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"fullname\": \"Болд Баатар\",\n  \"phone\": \"99001122\",\n  \"income\": 4000000\n}"
+              "raw": "{\n  \"fullname\": \"Батбаяр Дорж\",\n  \"income\": 3000000,\n  \"phone\": \"+97699009900\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/clients/{{client_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "clients", "{{client_id}}"]
-            }
+              "path": ["api", "clients", "{{client_id}}"],
+              "variable": [{ "key": "client_id", "value": "00000000-0000-0000-0000-000000000000" }]
+            },
+            "description": "Optional fields: national_id, fullname, income, phone\nAccess: super_user only"
           }
         },
         {
           "name": "Delete Client",
           "request": {
             "method": "DELETE",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
             "url": {
               "raw": "{{base_url}}/api/clients/{{client_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "clients", "{{client_id}}"]
-            }
+              "path": ["api", "clients", "{{client_id}}"],
+              "variable": [{ "key": "client_id", "value": "00000000-0000-0000-0000-000000000000" }]
+            },
+            "description": "409 Conflict if client has existing loan applications.\nAccess: super_user only"
           }
         }
       ]
     },
     {
-      "name": "📋 Loan Applications",
+      "name": "Loan Applications",
       "item": [
         {
           "name": "List Loan Applications",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/loan-applications/",
-              "host": ["{{base_url}}"],
-              "path": ["api", "loan-applications", ""]
-            }
+            "url": { "raw": "{{base_url}}/api/loan-applications", "host": ["{{base_url}}"], "path": ["api", "loan-applications"] }
           }
         },
         {
           "name": "Create Loan Application",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var json = pm.response.json();",
-                  "if (json.id) {",
-                  "  pm.collectionVariables.set('application_id', json.id);",
-                  "  console.log('✅ application_id хадгалагдлаа:', json.id);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"client_id\": \"{{client_id}}\",\n  \"requested_amount\": 15000000,\n  \"status\": \"pending\"\n}"
+              "raw": "{\n  \"client_id\": \"00000000-0000-0000-0000-000000000000\",\n  \"requested_amount\": 10000000\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/api/loan-applications/",
-              "host": ["{{base_url}}"],
-              "path": ["api", "loan-applications", ""]
-            },
-            "description": "Шинэ зээлийн өргөдөл үүсгэх. client_id заавал."
+            "url": { "raw": "{{base_url}}/api/loan-applications", "host": ["{{base_url}}"], "path": ["api", "loan-applications"] },
+            "description": "Required: client_id (UUID), requested_amount\nDefault status: pending\nAccess: super_user only"
           }
         },
         {
           "name": "Get Loan Application",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
             "url": {
               "raw": "{{base_url}}/api/loan-applications/{{application_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "loan-applications", "{{application_id}}"]
+              "path": ["api", "loan-applications", "{{application_id}}"],
+              "variable": [{ "key": "application_id", "value": "00000000-0000-0000-0000-000000000000" }]
             }
           }
         },
@@ -365,181 +222,85 @@
           "name": "Update Loan Application",
           "request": {
             "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"requested_amount\": 20000000,\n  \"status\": \"approved\"\n}"
+              "raw": "{\n  \"status\": \"approved\",\n  \"requested_amount\": 12000000\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/loan-applications/{{application_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "loan-applications", "{{application_id}}"]
+              "path": ["api", "loan-applications", "{{application_id}}"],
+              "variable": [{ "key": "application_id", "value": "00000000-0000-0000-0000-000000000000" }]
             },
-            "description": "status: pending | approved | rejected | cancelled"
+            "description": "Optional fields: status (pending | approved | rejected | cancelled), requested_amount\nAccess: super_user only"
           }
         },
         {
           "name": "Delete Loan Application",
           "request": {
             "method": "DELETE",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
             "url": {
               "raw": "{{base_url}}/api/loan-applications/{{application_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "loan-applications", "{{application_id}}"]
-            }
+              "path": ["api", "loan-applications", "{{application_id}}"],
+              "variable": [{ "key": "application_id", "value": "00000000-0000-0000-0000-000000000000" }]
+            },
+            "description": "Cascades to ScoreHistory and Notifications.\nAccess: super_user only"
           }
         }
       ]
     },
     {
-      "name": "🤖 ML Predict",
+      "name": "Predict (ML Score)",
       "item": [
         {
-          "name": "Predict Score",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var json = pm.response.json();",
-                  "if (json.score_history_id) {",
-                  "  pm.collectionVariables.set('score_history_id', json.score_history_id);",
-                  "  console.log('✅ Шийдвэр:', json.decision);",
-                  "  console.log('✅ Credit Score:', json.credit_score, '/ 950');",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
+          "name": "Predict Credit Score",
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"application_id\": \"{{application_id}}\",\n  \"monthly_income\": 3500000,\n  \"employment_years\": 8,\n  \"requested_amount\": 15000000,\n  \"employment_type\": \"Төрийн албан хаагч\"\n}"
+              "raw": "{\n  \"application_id\": \"00000000-0000-0000-0000-000000000000\",\n  \"monthly_income\": 2500000,\n  \"employment_years\": 3.5,\n  \"requested_amount\": 10000000,\n  \"employment_type\": \"Employed\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/api/predict",
-              "host": ["{{base_url}}"],
-              "path": ["api", "predict"]
-            },
-            "description": "ML загвараар зээлийн скор тооцох.\n\nemployment_type утгууд:\n- Багш\n- Барилгачин\n- Бизнес эрхлэгч\n- Жолооч\n- Инженер\n- Малчин\n- Тариаланч\n- Төрийн албан хаагч\n- Үйлчилгээ\n- Хувийн салбар\n- Худалдагч\n- Эмч\n\nHариу:\n- decision: approved | manual_review | rejected\n- credit_score: 200–950"
-          }
-        },
-        {
-          "name": "Predict Score — Approved жишээ",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"application_id\": \"{{application_id}}\",\n  \"monthly_income\": 4500000,\n  \"employment_years\": 10,\n  \"requested_amount\": 10000000,\n  \"employment_type\": \"Эмч\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/predict",
-              "host": ["{{base_url}}"],
-              "path": ["api", "predict"]
-            },
-            "description": "Approved болох магадлал өндөр жишээ. Score ~ 900+"
-          }
-        },
-        {
-          "name": "Predict Score — Rejected жишээ",
-          "request": {
-            "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"application_id\": \"{{application_id}}\",\n  \"monthly_income\": 1200000,\n  \"employment_years\": 1,\n  \"requested_amount\": 30000000,\n  \"employment_type\": \"Үйлчилгээ\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/api/predict",
-              "host": ["{{base_url}}"],
-              "path": ["api", "predict"]
-            },
-            "description": "Rejected болох магадлал өндөр жишээ. Score ~ 200"
+            "url": { "raw": "{{base_url}}/api/predict", "host": ["{{base_url}}"], "path": ["api", "predict"] },
+            "description": "Runs ML model and saves a ScoreHistory record automatically.\n\nRequired fields:\n- application_id (UUID) — must exist in DB\n- monthly_income (number > 0)\n- employment_years (number)\n- requested_amount (number > 0)\n- employment_type (string — must match model label encoder classes, e.g. \"Employed\", \"Self-Employed\", \"Unemployed\")\n\nResponse includes: credit_score (200–950), approval_probability, decision, model_name, model_version\n\nAccess: admin or super_user"
           }
         }
       ]
     },
     {
-      "name": "📊 Score History",
+      "name": "Score History",
       "item": [
         {
           "name": "List Score History",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/score-history/",
-              "host": ["{{base_url}}"],
-              "path": ["api", "score-history", ""]
-            }
+            "url": { "raw": "{{base_url}}/api/score-history", "host": ["{{base_url}}"], "path": ["api", "score-history"] }
           }
         },
         {
           "name": "Create Score History",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var json = pm.response.json();",
-                  "if (json.id) {",
-                  "  pm.collectionVariables.set('score_history_id', json.id);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"application_id\": \"{{application_id}}\",\n  \"model_version\": \"v1.0.0\",\n  \"score\": 750,\n  \"decision\": \"approved\"\n}"
+              "raw": "{\n  \"application_id\": \"00000000-0000-0000-0000-000000000000\",\n  \"model_version\": \"v1.0\",\n  \"score\": 720.0,\n  \"decision\": \"approved\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/api/score-history/",
-              "host": ["{{base_url}}"],
-              "path": ["api", "score-history", ""]
-            },
-            "description": "Гараар score history үүсгэх. Ихэвчлэн /api/predict автоматаар үүсгэдэг."
+            "url": { "raw": "{{base_url}}/api/score-history", "host": ["{{base_url}}"], "path": ["api", "score-history"] },
+            "description": "Required: application_id, model_version, score, decision\nNote: normally auto-created by /api/predict. Manual creation is for super_user only."
           }
         },
         {
           "name": "Get Score History",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
             "url": {
-              "raw": "{{base_url}}/api/score-history/{{score_history_id}}",
+              "raw": "{{base_url}}/api/score-history/{{score_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "score-history", "{{score_history_id}}"]
+              "path": ["api", "score-history", "{{score_id}}"],
+              "variable": [{ "key": "score_id", "value": "00000000-0000-0000-0000-000000000000" }]
             }
           }
         },
@@ -547,99 +308,67 @@
           "name": "Update Score History",
           "request": {
             "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"decision\": \"manual_review\",\n  \"score\": 600\n}"
+              "raw": "{\n  \"score\": 750.0,\n  \"decision\": \"approved\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/score-history/{{score_history_id}}",
+              "raw": "{{base_url}}/api/score-history/{{score_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "score-history", "{{score_history_id}}"]
-            }
+              "path": ["api", "score-history", "{{score_id}}"],
+              "variable": [{ "key": "score_id", "value": "00000000-0000-0000-0000-000000000000" }]
+            },
+            "description": "Access: super_user only"
           }
         },
         {
           "name": "Delete Score History",
           "request": {
             "method": "DELETE",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
             "url": {
-              "raw": "{{base_url}}/api/score-history/{{score_history_id}}",
+              "raw": "{{base_url}}/api/score-history/{{score_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "score-history", "{{score_history_id}}"]
-            }
+              "path": ["api", "score-history", "{{score_id}}"],
+              "variable": [{ "key": "score_id", "value": "00000000-0000-0000-0000-000000000000" }]
+            },
+            "description": "Access: super_user only"
           }
         }
       ]
     },
     {
-      "name": "🔔 Notifications",
+      "name": "Notifications",
       "item": [
         {
           "name": "List Notifications",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/notifications/",
-              "host": ["{{base_url}}"],
-              "path": ["api", "notifications", ""]
-            }
+            "url": { "raw": "{{base_url}}/api/notifications", "host": ["{{base_url}}"], "path": ["api", "notifications"] }
           }
         },
         {
           "name": "Create Notification",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var json = pm.response.json();",
-                  "if (json.id) {",
-                  "  pm.collectionVariables.set('notification_id', json.id);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"application_id\": \"{{application_id}}\",\n  \"channel\": \"email\",\n  \"recipient\": \"user@example.com\",\n  \"subject\": \"Зээлийн өргөдлийн үр дүн\",\n  \"message_body\": \"Таны зээлийн өргөдөл батлагдлаа.\",\n  \"status\": \"pending\"\n}"
+              "raw": "{\n  \"application_id\": \"00000000-0000-0000-0000-000000000000\",\n  \"channel\": \"email\",\n  \"recipient\": \"client@example.com\",\n  \"subject\": \"Зээлийн өргөдлийн шийдвэр\",\n  \"message_body\": \"Таны зээлийн өргөдөл батлагдлаа.\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/api/notifications/",
-              "host": ["{{base_url}}"],
-              "path": ["api", "notifications", ""]
-            },
-            "description": "channel: email | sms | push"
+            "url": { "raw": "{{base_url}}/api/notifications", "host": ["{{base_url}}"], "path": ["api", "notifications"] },
+            "description": "Required: channel, recipient, message_body\nOptional: application_id, subject\nDefault status: pending\nAccess: super_user only"
           }
         },
         {
           "name": "Get Notification",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
             "url": {
               "raw": "{{base_url}}/api/notifications/{{notification_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "notifications", "{{notification_id}}"]
+              "path": ["api", "notifications", "{{notification_id}}"],
+              "variable": [{ "key": "notification_id", "value": "00000000-0000-0000-0000-000000000000" }]
             }
           }
         },
@@ -647,98 +376,67 @@
           "name": "Update Notification",
           "request": {
             "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"status\": \"sent\",\n  \"message_body\": \"Шинэчлэгдсэн мессеж\"\n}"
+              "raw": "{\n  \"status\": \"sent\",\n  \"message_body\": \"Updated message.\"\n}"
             },
             "url": {
               "raw": "{{base_url}}/api/notifications/{{notification_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "notifications", "{{notification_id}}"]
-            }
+              "path": ["api", "notifications", "{{notification_id}}"],
+              "variable": [{ "key": "notification_id", "value": "00000000-0000-0000-0000-000000000000" }]
+            },
+            "description": "Access: super_user only"
           }
         },
         {
           "name": "Delete Notification",
           "request": {
             "method": "DELETE",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
             "url": {
               "raw": "{{base_url}}/api/notifications/{{notification_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "notifications", "{{notification_id}}"]
-            }
+              "path": ["api", "notifications", "{{notification_id}}"],
+              "variable": [{ "key": "notification_id", "value": "00000000-0000-0000-0000-000000000000" }]
+            },
+            "description": "Access: super_user only"
           }
         }
       ]
     },
     {
-      "name": "📝 Audit Logs",
+      "name": "Audit Logs",
       "item": [
         {
           "name": "List Audit Logs",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
-            "url": {
-              "raw": "{{base_url}}/api/audit-logs/",
-              "host": ["{{base_url}}"],
-              "path": ["api", "audit-logs", ""]
-            }
+            "url": { "raw": "{{base_url}}/api/audit-logs", "host": ["{{base_url}}"], "path": ["api", "audit-logs"] }
           }
         },
         {
           "name": "Create Audit Log",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "var json = pm.response.json();",
-                  "if (json.id) {",
-                  "  pm.collectionVariables.set('audit_log_id', json.id);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
           "request": {
             "method": "POST",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"action\": \"CREATE\",\n  \"entity_type\": \"loan_application\",\n  \"entity_id\": \"{{application_id}}\"\n}"
+              "raw": "{\n  \"action\": \"CREATE\",\n  \"entity_type\": \"LoanApplication\",\n  \"entity_id\": \"00000000-0000-0000-0000-000000000000\",\n  \"user_id\": \"00000000-0000-0000-0000-000000000000\"\n}"
             },
-            "url": {
-              "raw": "{{base_url}}/api/audit-logs/",
-              "host": ["{{base_url}}"],
-              "path": ["api", "audit-logs", ""]
-            }
+            "url": { "raw": "{{base_url}}/api/audit-logs", "host": ["{{base_url}}"], "path": ["api", "audit-logs"] },
+            "description": "Required: action, entity_type\nOptional: entity_id (UUID), user_id (UUID)\nAccess: super_user only"
           }
         },
         {
           "name": "Get Audit Log",
           "request": {
             "method": "GET",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
             "url": {
-              "raw": "{{base_url}}/api/audit-logs/{{audit_log_id}}",
+              "raw": "{{base_url}}/api/audit-logs/{{log_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "audit-logs", "{{audit_log_id}}"]
+              "path": ["api", "audit-logs", "{{log_id}}"],
+              "variable": [{ "key": "log_id", "value": "00000000-0000-0000-0000-000000000000" }]
             }
           }
         },
@@ -746,33 +444,31 @@
           "name": "Update Audit Log",
           "request": {
             "method": "PUT",
-            "header": [
-              { "key": "Content-Type", "value": "application/json" },
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"action\": \"UPDATE\",\n  \"entity_type\": \"loan_application\"\n}"
+              "raw": "{\n  \"action\": \"UPDATE\",\n  \"entity_type\": \"Client\"\n}"
             },
             "url": {
-              "raw": "{{base_url}}/api/audit-logs/{{audit_log_id}}",
+              "raw": "{{base_url}}/api/audit-logs/{{log_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "audit-logs", "{{audit_log_id}}"]
-            }
+              "path": ["api", "audit-logs", "{{log_id}}"],
+              "variable": [{ "key": "log_id", "value": "00000000-0000-0000-0000-000000000000" }]
+            },
+            "description": "Access: super_user only"
           }
         },
         {
           "name": "Delete Audit Log",
           "request": {
             "method": "DELETE",
-            "header": [
-              { "key": "Authorization", "value": "Bearer {{token}}" }
-            ],
             "url": {
-              "raw": "{{base_url}}/api/audit-logs/{{audit_log_id}}",
+              "raw": "{{base_url}}/api/audit-logs/{{log_id}}",
               "host": ["{{base_url}}"],
-              "path": ["api", "audit-logs", "{{audit_log_id}}"]
-            }
+              "path": ["api", "audit-logs", "{{log_id}}"],
+              "variable": [{ "key": "log_id", "value": "00000000-0000-0000-0000-000000000000" }]
+            },
+            "description": "Access: super_user only"
           }
         }
       ]
