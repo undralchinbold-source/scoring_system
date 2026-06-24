@@ -59,7 +59,7 @@ services:
       postgres:
         condition: service_healthy
     command: >
-      sh -c "flask db upgrade && python run.py"
+      sh -c "flask db upgrade && python create_superadmin.py && python run.py"
 
 volumes:
   postgres_data:
